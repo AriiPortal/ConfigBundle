@@ -1,0 +1,40 @@
+{% extends "AriiConfigBundle::layout.html.twig" %}
+{% block body %}
+<script language="javascript">
+dhtmlxEvent(window,"load",function(){
+    
+    globalLayout = new dhtmlXLayoutObject(document.body,"2U");  
+    globalLayout.cells("a").setWidth(410); 
+    globalLayout.cells("a").hideHeader(); 
+    globalLayout.cells("b").hideHeader(); 
+
+    globalMenu = globalLayout.cells("a").attachMenu();
+    globalMenu.setIconsPath( "{{ asset('/bundles/ariicore/images/menu/') }}" );
+    globalMenu.loadStruct("{{ url('xml_menu') }}?route={{ app.request.attributes.get('_route') }}");
+
+    myRibbon = globalLayout.cells("a").attachRibbon(); 
+    myRibbon.setIconPath( "{{ asset('/bundles/ariicore/images/ribbon/') }}" );
+    myRibbon.loadStruct("{{ url('json_Config_ribbon') }}");
+    myRibbon.attachEvent("onStateChange", StateRibbon );
+    myRibbon.attachEvent("onClick", ClickRibbon );
+
+    myTree = globalLayout.cells("a").attachTree();
+    myTree.setImagesPath("{{ asset('bundles/ariicore/images/tree/') }}");
+    myTree.setDataMode("json");
+    myTree.load( "{{ url('json_Config_tree_menu') }}" );
+    myTree.setOnClickHandler(function(item) {
+        switch (item) {            
+            case 'phpinfo':
+                globalLayout.cells("b").attachURL('{{ url('arii_Config_phpinfo') }}');
+                break;
+            case 'save_db':
+                globalLayout.cells("b").attachURL('{{ url('arii_Config_save_db') }}');
+                break;
+            default:
+                window.location = "{{ url('arii_Config_index') }}"+item;
+        }
+    });
+    globalLayout.cells("b").attachURL('{{ asset('/bundles/ariicore/images/arii.jpg') }}');
+});
+</script>
+{% endblock %}

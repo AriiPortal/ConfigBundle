@@ -1,0 +1,207 @@
+{% extends "AriiConfigBundle::layout.html.twig" %}
+{% block body %}
+<script language="javascript">
+dhtmlxEvent(window,"load",function(){
+    
+    globalLayout = new dhtmlXLayoutObject(document.body,"2U");
+    globalLayout.cells("a").hideHeader();
+    globalLayout.cells("a").setWidth(410); 
+    globalLayout.cells("b").hideHeader();
+
+    globalMenu = globalLayout.cells("a").attachMenu();
+    globalMenu.setIconsPath( "{{ asset('/bundles/ariicore/images/menu/') }}" );
+    globalMenu.loadStruct("{{ url('xml_menu') }}?route={{ app.request.attributes.get('_route') }}");
+
+    myRibbon = globalLayout.cells("a").attachRibbon(); 
+    myRibbon.setIconPath( "{{ asset('/bundles/ariicore/images/ribbon/') }}" );
+    myRibbon.loadStruct("{{ url('json_Config_ribbon') }}");
+    myRibbon.attachEvent("onStateChange", StateRibbon );
+    myRibbon.attachEvent("onClick", ClickRibbon );
+
+    menu = new dhtmlXMenuObject();
+    menu.setIconsPath( "{{ asset('arii/images/menu/') }}" );
+    menu.renderAsContextMenu();
+    menu.attachEvent("onClick", onMenuClick);
+    menu.loadStruct("{{ url('xml_Config_enterprises_menu') }}");
+
+    var toolbarb;
+    toolbarb = globalLayout.cells("b").attachToolbar();
+    toolbarb.setIconsPath("{{ asset('arii/images/toolbar/') }}");
+    toolbarb.loadStruct("{{ url('xml_Config_enterprise_toolbar') }}");
+    toolbarb.attachEvent("onClick",onClick);
+
+    myGrid = globalLayout.cells("a").attachGrid();
+    myGrid.setMultiRows = true;
+    myGrid.setImagePath("{{ asset('arii/images/treegrid/') }}");
+    myGrid.setHeader("{{ "Enterprise" | trans }},{{ "Modules" | trans }}");
+    myGrid.attachHeader("#select_filter,#text_filter");
+    myGrid.setInitWidths("300,*");
+    myGrid.setColAlign("left,left");
+    myGrid.setColTypes("ro,ro");
+    myGrid.setColSorting("str,str");
+    myGrid.enableContextMenu(menu);
+    myGrid.init();
+    myGrid.loadXML("{{ url('xml_Config_enterprises_grid') }}");
+    myGrid.attachEvent("onRowDblClicked", function (rid) {
+        EditEnterprise(rid);
+    });
+
+    var myform,formData;
+    formData = [
+        { type: "settings", position: "label-left", labelWidth: 120, inputWidth: 300, noteWidth: 300},
+        {    type:"fieldset",
+             name: "fieldset",
+             label:"{{ "Enterprise"| trans}}",
+             width: "auto",
+             list: [   {
+                         type: "hidden",
+                         name: "id"
+                       },
+                       { type: "input",
+                         name: "enterprise",
+                         label: "{{ "Enterprise Name"| trans }}",
+                         required: true,
+                         note: {
+                           text: "Enter your Enterprise Name here. This field can not be empty"
+                         }
+                       },
+                      { type: "input",
+                        name: "modules",
+                        label: "{{ "Modules"| trans }}",
+                        labelAlign: "center",
+                        required: true,
+                        note: {
+                           text: "Type modules for the enterprise"
+                        }
+                      }
+                   ]
+        }
+    ];
+
+    myform = globalLayout.cells("b").attachForm(formData);
+    myform.enableLiveValidation(true);
+    {%if id != '' %}
+    myform.load("{{ url('xml_Config_repository_form') }}?id="+{{ id }} );
+    {%endif%}
+});
+                
+function onClick(id,value){
+    switch (id)
+    {
+        case "add_enterprise":
+            NewEnterprise();
+            break;
+        case "delete_enterprise":
+            id = myform.getItemValue("id");
+            DeleteEnterprise(id);
+            break;
+       case "save_enterprise":
+           myform.send("{{ url('xml_Config_enterprise_save') }}","POST",function(loader,response){
+               if(response === "success")
+               {
+                 dhtmlx.message({
+                    title:"Save",
+                    type: "Notice",
+                    lifetime: "60000",
+                    text: "{{ "Enterprise saved" | trans }}"
+                 });
+                 myform.clear();
+                 myform.setItemFocus("enterprise");
+                 myGrid.loadXML("{{ url('xml_Config_enterprises_grid') }}");
+               }
+           });
+           
+       break;
+       default:
+           break;
+    }
+};
+
+function onMenuClick(menuitemId,value)
+{
+    var rid = myGrid.contextID.split("_")[0];
+    switch (menuitemId)
+    {
+        case "add_enterprise":
+            NewEnterprise();
+            break;
+        case "edit_enterprise":
+            EditEnterprise(rid);
+            break;
+        case "delete_enterprise":
+            DeleteEnterprise(rid);
+            break;
+        default:
+            break;
+    }
+    return true;
+}
+
+function GridRefresh()
+{
+    myGrid.clear();
+    myGrid.loadXML("{{ url('xml_Config_enterprises_grid') }}");
+}
+
+function NewEnterprise() {
+    window.location = "{{ url('arii_Config_enterprise_new') }}";
+}
+
+function EditEnterprise(id) {
+    globalLayout.cells("a").progressOn();
+    myform.setItemLabel("fieldset","{{ "Edit enterprise" | trans }}");
+    myform.clear();
+    myform.load("{{ url('xml_Config_enterprise_form') }}?id="+id, function () {
+        globalLayout.cells("a").progressOff();
+    });
+}
+
+function DeleteEnterprise(id) {
+    dhtmlx.confirm({
+     title: "{{ "Delete enterprise" | trans }}",
+     type: "confirm-error",
+     text: "{{ "enterprise.message.delete" | trans }}",
+     callback: function(answer) { if (answer) {
+            dhtmlx.confirm({
+            title: "{{ "Delete Enterprise" | trans }}",
+            type: "confirm-error",
+            text: "{{ "Do you really want to delete this Enterprise ?" | trans }}",
+            callback: function(answer) { 
+                if (answer){
+                    dhtmlxAjax.get("{{ url('xml_Config_enterprise_delete') }}?id="+rid,"POST",function(loader,response){
+                       if(response === "success")
+                       {
+                         dhtmlx.message({
+                            title:"{{ "Delete" | trans }}",
+                            type: "Notice",
+                            lifetime: "60000",
+                            text: "{{ "Enterprise deleted" | trans }}"
+                         });
+                         myform.clear();
+                         myform.setItemFocus("enterprise");
+                         myGrid.loadXML("{{ url('xml_Config_enterprises_grid') }}");
+                       }
+                       else {
+                         dhtmlx.message({
+                            title:"{{ "Delete" | trans }}",
+                            type: "Error",
+                            lifetime: "60000",
+                            text: response
+                         });
+                       }
+                   });
+                }
+            },
+            cancel: "{{ "Cancel" | trans }}",
+            ok: "{{ "Yes" | trans }}" });
+        }
+    },
+     cancel: "{{ "No" | trans }}",
+     ok: "{{ "Yes" | trans }}" });
+ }
+ 
+function GlobalRefresh() { }
+
+</script>
+
+{% endblock %}

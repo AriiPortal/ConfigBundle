@@ -1,0 +1,50 @@
+{% extends "AriiConfigBundle::layout.html.twig" %}
+{% block body %}
+<script language="javascript">
+dhtmlxEvent(window,"load",function(){
+    
+    globalLayout = new dhtmlXLayoutObject(document.body,"2U");  
+    globalLayout.cells("a").setWidth(410); 
+    globalLayout.cells("a").hideHeader(); 
+    globalLayout.cells("b").hideHeader(); 
+
+    globalMenu = globalLayout.cells("a").attachMenu();
+    globalMenu.setIconsPath( "{{ asset('/bundles/ariicore/images/menu/') }}" );
+    globalMenu.loadStruct("{{ url('xml_menu') }}?route={{ app.request.attributes.get('_route') }}");
+
+    myRibbon = globalLayout.cells("a").attachRibbon(); 
+    myRibbon.setIconPath( "{{ asset('/bundles/ariicore/images/ribbon/') }}" );
+    myRibbon.loadStruct("{{ url('json_Config_ribbon') }}");
+    myRibbon.attachEvent("onStateChange", StateRibbon );
+    myRibbon.attachEvent("onClick", ClickRibbon );
+
+    // On cree le formulaire
+    var myform,formData;
+    formData = [
+        { type: "settings", position: "label-left", labelWidth: 220, inputWidth: 500, noteWidth: 500},
+        {    type:"fieldset",
+             name: "fieldset",
+             label:"{{ "Settings"| trans}}",
+             width: "auto",
+             list: [   {
+                         type: "hidden",
+                         name: "id"
+                       }
+    {% for param in Params %}
+                       ,{ type: "input",
+                          name: "enterprise",
+                          label: "{{ param.label | trans }}",
+                          value: "{{ param.value }}"
+                       }
+     {% endfor %}                   
+                   ]
+        }
+    ];
+
+    // juste en lecture
+    myform = globalLayout.cells("b").attachForm(formData);
+});
+    
+function GlobalRefresh() {}
+</script>
+{% endblock %}
